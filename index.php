@@ -114,6 +114,10 @@
 					  }
 					];
 					map.setOptions({styles: styles});
+					
+					var bikeLayer = new google.maps.BicyclingLayer();
+                    bikeLayer.setMap(map);
+
 					bikemapJS.parse();
 				},
 				
@@ -133,6 +137,8 @@
                 addMarkers: function(data) {
                 	//console.log(data);
                 	for(var i = data.length -1; i >= 0; i--) {
+                		
+
 	                	var marker = new google.maps.Marker({
 	     					position: new google.maps.LatLng(data[i].lat, data[i].long),
 	      					map: map,
