@@ -60,6 +60,7 @@
     				<li class="disabled last"><input type="checkbox"/><label>Road Hazard</label></li>
     			</ul>
 
+    			<div id="markerCount"></div>
 
                 <div id="chart_div"></div>
 
@@ -80,6 +81,8 @@
 			var libraries = 'weather,places';
 			var markerArr = [];
 			var image = 'assets/marker.png';
+			var jsonFile = 'bikemap.json';
+			var markerCount;
 
 			return {
 				// The init function to get google Maps centered and zoom with our defaults
@@ -87,7 +90,7 @@
 					var mapOptions = {
 						//Santa Monica, California
 						center: new google.maps.LatLng(34.0194, -118.4903),
-						zoom: 10,
+						zoom: 12,
 						mapTypeId: google.maps.MapTypeId.ROADMAP
 					};
 					map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
@@ -130,23 +133,45 @@
 				},
 
 				parse: function() {
-					$.get('bikedatashort.json', function(data) {
+					$.get(jsonFile, function(data) {
 						bikemapJS.addMarkers(data);	
                     });
                 },
                 addMarkers: function(data) {
-                	//console.log(data);
+		          	//console.log(data);
+		          	markerCount = data.length;
                 	for(var i = data.length -1; i >= 0; i--) {
-                		
-
 	                	var marker = new google.maps.Marker({
 	     					position: new google.maps.LatLng(data[i].lat, data[i].long),
 	      					map: map,
 	      					icon: image,
-	      					title: data[i].case_id
-	      				});
-						//markerArr.push[marker];
+	      					title: data[i].case_id + " / " + data[i].direction + " / " + parseInt(data[i].distance)
+  						});
+						
+						/*
+                		if(data[i].distance == 0) { 
+                			radius = 1; 
+                			fillColor = '#0000ff';
+                		} else {
+                			radius = parseInt(data[i].distance);                			
+                			fillColor = '#ff0000';
+                		}
+
+					   var circleOptions = {
+					      strokeColor: "#FF0000",
+					      strokeOpacity: 0.8,
+					      strokeWeight: 2,
+					      fillColor: "#FF0000",
+					      fillOpacity: 0.3,
+					      map: map,
+					      center: new google.maps.LatLng(data[i].lat, data[i].long),
+					      radius: 30
+					    };
+					    cityCircle = new google.maps.Circle(circleOptions);
+						*/
                 	}	
+                	console.log(markerCount);
+                	$('#markerCount').html('Markers Displayed: '  + markerCount);
 
                 }
                     
