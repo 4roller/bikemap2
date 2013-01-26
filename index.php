@@ -4,6 +4,7 @@
     	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/3.5.0/build/cssbase/cssbase-min.css">
     	<link href='http://fonts.googleapis.com/css?family=BenchNine' rel='stylesheet' type='text/css'>
+    	<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" />
 
     	<style type="text/css">
       		html { position:relative; height: 100%; width:100%; border:0px solid green; font-family: sans-serif; background: #f5f5f5; }
@@ -17,7 +18,7 @@
       			nav ul li { display:inline-block; list-style:none; margin-right:10px;}
 
       		#main {display:block; position:relative; float:left; width:100%; height: 100%;}
-      		
+      		#markerCount { margin-top: 20px; }
       		#map_canvas { height: 85%; width: 75%; margin: 5px 0 0 10px; float:left; position:relative;}
       		#rr { width: 20%; display:block; position:relative; float:left; margin: 5px 0 0 20px;}
       			#rr h3 { margin:0; border-top: 5px solid #555; border-bottom: 1px dashed #555; padding: 8px 0; font-size:72%; text-transform: uppercase; }
@@ -25,9 +26,12 @@
       			#rr ul li { list-style:none; font-size:72%; height:30px; border-bottom:1px dashed #d5d5d5; background:#fff; }
       			#rr ul li.last { border-bottom: none;}
       			#rr ul li.disabled { background: #f5f5f5; }
-      			#rr ul li input {position:relative; margin: 8px 10px 0 5px;}
-      			#rr ul li label { position:relative; display:block; margin: -16px 0 0 25px; cursor: auto; color:#767676;}
-
+      			#rr ul li input {position:relative; margin: 8px 5px 0 5px;}
+      			#rr ul li label { position:relative; display:block; margin: -12px 0 0 45px; cursor: auto; color:#767676;}
+		      		#rr .colourBlock { height: 10px; width: 10px; display:block; position:relative; border:1px solid #ccc; border-radius: 4px;margin: -16px 0 0 25px; }
+		      		#rr .labelRed {  background:red; }
+					#rr .labelOrange { background:orange; }
+					#rr .labelYellow { background:yellow; }
     	</style>
 	</head>
 
@@ -51,14 +55,24 @@
     		<div id="rr">
     			<h3>Incident Categories</h3>
     			<ul class="catList">
-    				<li class="disabled"><input type="checkbox"/><label>All</label></li>
-    				<li class="disabled"><input type="checkbox"/><label>Harrasement</label></li>
-    				<li><input type="checkbox" checked="checked" /><label>Collision</label></li>
-    				<li><input type="checkbox" checked="checked"/><label>Recovered Bike</label></li>
-    				<li class="disabled"><input type="checkbox"/><label>Close Call</label></li>
-    				<li class="disabled"><input type="checkbox"/><label>Fall</label></li>
-    				<li class="disabled last"><input type="checkbox"/><label>Road Hazard</label></li>
+    				<li>
+    					<input type="checkbox"/>
+    					<div class="labelRed colourBlock"></div>
+    					<label>Fatality</label>
+    				</li>
+    				<li>
+    					<input type="checkbox" checked="checked" />
+    					<div class="labelOrange colourBlock"></div>
+    					<label>Injury</label>
+    				</li>
+    				<li>
+    					<input type="checkbox" checked="checked"/>
+    					<div class="labelYellow colourBlock"></div>
+    					<label>Other (Property Damage, Collision)</label>
+    				</li>
     			</ul>
+
+    			<div id="slider-range"></div>
 
     			<div id="markerCount"></div>
 
@@ -68,9 +82,11 @@
     	</div>
     </body>
 
-	<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-	<script type="text/javascript">
+	<script async type="text/javascript" src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+    <script async type="text/javascript" src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+    <script async type="text/javascript" src="https://www.google.com/jsapi"></script>
+    
+	<script async type="text/javascript">
 
 		/* Bikemap Javascript */
 		var bikemapJS = (function() {
@@ -79,12 +95,19 @@
 			var map; 
 			var API_KEY = 'AIzaSyCcdAQ2zf5JwAKPfP2u2x6ADtv6tXFTMII';
 			var libraries = 'weather,places';
-			var markerArr = [];
 			var image = 'assets/marker.png';
 			var jsonFile = 'bikemap.json';
 			var markerCount;
 
 			return {
+				// Asynchronously loads the Google Maps API
+				loadScript: function() {
+					var script = document.createElement("script");
+	  				script.type = "text/javascript";
+	  				script.src = "http://maps.googleapis.com/maps/api/js?libraries=" + libraries + "&key=" + API_KEY + "&sensor=false&callback=bikemapJS.init";
+	  				document.body.appendChild(script);
+				},
+
 				// The init function to get google Maps centered and zoom with our defaults
 				init: function() {
 					var mapOptions = {
@@ -123,22 +146,12 @@
 
 					bikemapJS.parse();
 				},
-				
-                // Asynchronously loads the Google Maps API
-				loadScript: function() {
-					var script = document.createElement("script");
-	  				script.type = "text/javascript";
-	  				script.src = "http://maps.googleapis.com/maps/api/js?libraries=" + libraries + "&key=" + API_KEY + "&sensor=false&callback=bikemapJS.init";
-	  				document.body.appendChild(script);
-				},
-
 				parse: function() {
 					$.get(jsonFile, function(data) {
 						bikemapJS.addMarkers(data);	
                     });
                 },
                 addMarkers: function(data) {
-		          	//console.log(data);
 		          	markerCount = data.length;
                 	for(var i = data.length -1; i >= 0; i--) {
 	                	var marker = new google.maps.Marker({
@@ -147,34 +160,21 @@
 	      					icon: image,
 	      					title: data[i].case_id + " / " + data[i].direction + " / " + parseInt(data[i].distance)
   						});
-						
-						/*
-                		if(data[i].distance == 0) { 
-                			radius = 1; 
-                			fillColor = '#0000ff';
-                		} else {
-                			radius = parseInt(data[i].distance);                			
-                			fillColor = '#ff0000';
-                		}
-
-					   var circleOptions = {
-					      strokeColor: "#FF0000",
-					      strokeOpacity: 0.8,
-					      strokeWeight: 2,
-					      fillColor: "#FF0000",
-					      fillOpacity: 0.3,
-					      map: map,
-					      center: new google.maps.LatLng(data[i].lat, data[i].long),
-					      radius: 30
-					    };
-					    cityCircle = new google.maps.Circle(circleOptions);
-						*/
                 	}	
-                	console.log(markerCount);
                 	$('#markerCount').html('Markers Displayed: '  + markerCount);
-
+                	bikemapJS.updateNav();
+                },
+                updateNav: function() {
+                	 $( "#slider-range" ).slider({
+      					range: true,
+      					min: 0,
+      					max: 500,
+      					values: [ 75, 300 ],
+      					slide: function( event, ui ) {
+        					$( "#amount" ).val( "$" + ui.values[ 0 ] + " - $" + ui.values[ 1 ] );
+      					}
+    				});
                 }
-                    
 			}
 		})();
 
