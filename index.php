@@ -87,7 +87,7 @@
     	</div>
     </body>
 
-	<script async type="text/javascript" src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+	<script async type="text/javascript" src="jquery.js"></script>
     <script async type="text/javascript" src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
     <script async type="text/javascript" src="https://www.google.com/jsapi"></script>
     
@@ -102,7 +102,7 @@
 			var libraries = 'weather,places';
 			var image = 'assets/marker_fatal.png';
 			var markersArray = [];
-            var markerCount;
+      var markerCount;
 
 			return {
 
@@ -118,7 +118,7 @@
 				init: function() {
 					var mapOptions = {
 						//Santa Monica, California
-						center: new google.maps.LatLng(34.0194, -118.4903),
+						center: new google.maps.LatLng(34.0194, -118.3903),
 						zoom: 11,
 						mapTypeId: google.maps.MapTypeId.ROADMAP
 					};
@@ -148,13 +148,13 @@
 					map.setOptions({styles: styles});
 					
 					var bikeLayer = new google.maps.BicyclingLayer();
-                    bikeLayer.setMap(map);
+          bikeLayer.setMap(map);
                     
-                    bikemapJS.addListeners();
+          bikemapJS.addListeners();
 					bikemapJS.parseNav();
 				},
 
-                // Create our event listeners
+        // Create our event listeners
 				addListeners: function() {
 					$('.catList li input').click(function() {
 						bikemapJS.parseNav();
@@ -162,73 +162,94 @@
 				},
 
 				// Cycle through Catrgory checkboxes, and make a request based on the selection
-                parseNav: function() {
+        parseNav: function() {
 					var url = 'query.php';
 					var catStr = '';
 					// Look for each checked Catergory and create a query string
-                    $('.catList li input').each(function() {
-						if( $(this).is(':checked') ) {
-    						catStr += $(this).attr('name') + ',';
-						}
-    				});
-                    // Remove any extra commas of they exist
+          $('.catList li input').each(function() {
+            if( $(this).is(':checked') ) {
+              catStr += $(this).attr('name') + ',';
+            }
+    			});
+          // Remove any extra commas of they exist
 					if(catStr[catStr.length -1] == ',') { 
 						catStr = catStr.substr(0,catStr.length -1);
 					}
 
-                    bikemapJS.clearAllMarkers();
+          bikemapJS.clearAllMarkers();
 
-                    // Do an ajax request for data if any checkbox are selected
-                    if( typeof catStr != 'undefined' && catStr != '') {
-                        url += '?cat=' + catStr;
-    					$.get(url, function(data) {
-	    					bikemapJS.addMarkers(data);	
-                        });
-                    }
-                },
+          // Do an ajax request for data if any checkbox are selected
+          if( typeof catStr != 'undefined' && catStr != '') {
+            url += '?cat=' + catStr;
+            $.get(url, function(data) {
+              bikemapJS.addMarkers(data);	
+            });
+          }
+        },
 
-                // Clears all map markers
-                clearAllMarkers: function() {
-                    for(i in markersArray) {
-                        markersArray[i].setMap(null);
-                    }
-                },
-
-                // Upon recieving data, we places markers on the map
-                addMarkers: function(data) {
-                    data = JSON.parse(data);
-
-                	//console.log(data);
-                    for(var cat in data) {
-                        var markerIcon = 'assets/marker_' + cat + '.png';       
-                        
-                        for(var i = data[cat].length -1; i >= 0; i--) {
-                		    var marker = new google.maps.Marker({
-	     					    position: new google.maps.LatLng(data[cat][i].lat, data[cat][i].long),
-	      					    map: map,
-	      					    icon: markerIcon,
-	      					    title: data[cat][i].case_id
-  						    });
-                            markersArray.push(marker);
-                	    }	
+        // Clears all map markers
+        clearAllMarkers: function() {
+          markerCount = 0;
+          for(i in markersArray) {
+            markersArray[i].setMap(null);
+          }
+          markersArray = [];
+          $('#markerCount').html('Markers Displayed: '  + markerCount);
+        },
                 
-                	}
-                    
-                    //$('#markerCount').html('Markers Displayed: '  + markerCount);
-                	bikemapJS.updateSlider();
+        // Upon recieving data, we places markers on the map
+        addMarkers: function(data) {
+          data = JSON.parse(data);
+          // Go through each of the available categories in json data
+          for(var cat in data) {
+            var markerIcon = 'assets/marker_' + cat + '.png';       
+            markerCount += data[cat].length;
+                 
+            // create a marker for each incident
+            for(var i = data[cat].length -1; i >= 0; i--) {
+        		  var marker = new google.maps.Marker({
+                position: new google.maps.LatLng(data[cat][i].lat, data[cat][i].long),
+	 				      map: map,
+                icon: markerIcon,
+                title: data[cat][i].case_id
+              });
+              markersArray.push(marker);
+              bikemapJS.addOverlay(marker, data[cat][i]);
+            }
+          }
+          $('#markerCount').html('Markers Displayed: '  + markerCount);
+          bikemapJS.updateSlider();
+        },
                 
-                },
-                updateSlider: function() {
-                	 $( "#slider-range" ).slider({
-      					range: true,
-      					min: 0,
-      					max: 500,
-      					values: [ 75, 300 ],
-      					slide: function( event, ui ) {
-        					$( "#amount" ).val( "$" + ui.values[ 0 ] + " - $" + ui.values[ 1 ] );
-      					}
-    				});
-                }
+        addOverlay: function(marker, data){
+          google.maps.event.addListener(marker, 'click', function() {
+            var url = 'query2.php?id=' + data.case_id; 
+            $.get(url, function(payload){
+              data = JSON.parse(payload)[0];
+              console.log(data);
+              var cs = '';
+              cs += '<div>';
+              cs += '<h3>' + data.primary_rd + ' / ' + data.secondary_rd + '</h3>';  
+              cs += '</div>';
+              var infowindow = new google.maps.InfoWindow({
+                content: cs
+              });
+              infowindow.open(map, marker);
+            }); 
+          });
+        },
+
+        updateSlider: function() {
+          $( "#slider-range" ).slider({
+            range: true,
+            min: 0,
+      			max: 500,
+      			values: [ 75, 300 ],
+      			slide: function( event, ui ) {
+        		  $( "#amount" ).val( "$" + ui.values[ 0 ] + " - $" + ui.values[ 1 ] );
+      			}
+    			});
+        }
 			}
 		})();
 

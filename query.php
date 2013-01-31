@@ -14,7 +14,7 @@
 				    $file = file_get_contents('./data/severe.json');
 				    break;
 			    default:
-				    $file = file_get_contents('./data/fatal.json');
+				    $file = '0';
 				    break;
 		    }
 		    $out .= '"' . $cat . '" : ' . $file . ',';
